@@ -21,7 +21,7 @@ import Sound from "react-native-sound";
 import Modal from "react-native-modal";
 import VolumeSlider from "react-native-volume-slider";
 
-import DisplayModal from "./components/DisplayModal.js";
+import DisplayModal from "./components/DisplayModal";
 
 import Grape from "./android/app/src/main/res/mipmap-hdpi/grape_image.png";
 import Cherry from "./android/app/src/main/res/mipmap-hdpi/cherry_image.png";
@@ -29,9 +29,9 @@ import Diamond from "./android/app/src/main/res/mipmap-hdpi/sevenreal.png";
 import Strawberry from "./android/app/src/main/res/mipmap-hdpi/strawberry_lit.png";
 
 export default class App extends React.Component {
-  /*sound = new Sound(
-    //require("./android/app/src/main/res/raw/casino_sound_one.mp3")
-  );*/
+  sound = new Sound(
+    require("./android/app/src/main/res/raw/casino_sound_one.mp3")
+  );
 
   constructor(props) {
     super(props);
@@ -50,8 +50,6 @@ export default class App extends React.Component {
       Diamond
     ];
 
-    this.spinValue = new Animated.Value(0);
-
     this.state = {
       currentWheel1: this.ImageArray[Math.floor(Math.random() * 4) % 4],
       currentWheel2: this.ImageArray[Math.floor(Math.random() * 4) % 4],
@@ -59,20 +57,23 @@ export default class App extends React.Component {
       StartSpinning: false,
       currentValue: 1000,
       playedValue: 15,
-      modalVisible: false,
+      isModalVisible: true,
       display: false,
-      opacity: 1,
       volume: 0
     };
   }
 
-  toggleModal = () => {
+  toggleModal() {
     this.setState({ isModalVisible: !this.state.isModalVisible });
+  }
+
+  triggerModal = () => {
+    this.setState({ display: true });
   };
 
-  triggerModal() {
-    this.setState({ display: !this.state.display });
-  }
+  triggerModalBack = () => {
+    this.setState({ display: false });
+  };
 
   async componentDidMount() {
     rolledTime = 0;
@@ -113,16 +114,19 @@ export default class App extends React.Component {
   soundsBack = () => {
     this.sound.setVolume(this.state.volume);
     this.setModalVisible(!this.state.modalVisible);
+    alert("SoundsOn");
   };
 
   soundsOff = () => {
     this.sound.setVolume(0);
     this.setModalVisible(!this.state.modalVisible);
+    alert("SoundsOff");
   };
 
   stopSound = () => {
     this.sound.pause();
   };
+  
 
   StartSpinning = () => {
     rolledTime++;
@@ -135,7 +139,7 @@ export default class App extends React.Component {
           currentWheel3: this.ImageArray[Math.floor(Math.random() * 12) % 12]
         });
         this.StartSpinning();
-        //this.playSound();
+        this.playSound();
       }, 150);
     } else {
       rolledTime = 0;
@@ -145,27 +149,15 @@ export default class App extends React.Component {
     }
   };
 
-  opacity() {
-    this.opacity = 0.0;
-  }
-
-  spin() {
-    this.spinValue.setValue(0);
-    Animated.timing(this.spinValue, {
-      toValue: 1,
-      duration: 4000,
-      easing: Easing.linear
-    }).start(() => this.spin());
-  }
-
   checkIfWin() {
     if (
       this.state.currentWheel1 == this.state.currentWheel2 &&
+      this.state.currentWheel1 == this.state.currentWheel3 &&
       this.state.currentWheel2 == this.state.currentWheel3
     ) {
       let winValue = this.state.currentValue + 100;
 
-      alert("1");
+      alert("You won 100€");
 
       this.setState({
         currentValue: winValue
@@ -177,23 +169,37 @@ export default class App extends React.Component {
     ) {
       let winValue = this.state.currentValue + 50;
 
-      alert("2");
+      alert("You won 50€");
 
       this.setState({
         currentValue: winValue
       });
     }
-    if (this.state.currentWheel1 == this.state.currentWheel3) {
-      let winValue = this.state.currentValue + 50;
+    if (
+      this.state.currentWheel1 == this.state.currentWheel3 &&
+      this.state.currentWheel1 != this.state.currentWheel2
+    ) {
+      let winValue = this.state.currentValue + 70;
 
-      alert("3");
+      alert("You won 70€");
+
+      this.setState({
+        currentValue: winValue
+      });
+    }
+    if (
+      this.state.currentWheel1 != this.state.currentWheel2 &&
+      this.state.currentWheel2 == this.state.currentWheel3
+    ) {
+      let winValue = this.state.currentValue + 70;
+
+      alert("You won 50€");
 
       this.setState({
         currentValue: winValue
       });
     } else {
       let newValue = this.state.currentValue - 5;
-      this.spin();
       this.setState({
         currentValue: newValue
       });
@@ -201,14 +207,10 @@ export default class App extends React.Component {
   }
 
   render() {
-    const spin = this.spinValue.interpolate({
-      inputRange: [0, 1],
-      outputRange: ["0deg", "360deg"]
-    });
     return (
       <View>
         <ImageBackground
-          source={require("./android/app/src/main/res/mipmap-hdpi/backgroundgames.jpg")}
+          source={require("./android/app/src/main/res/mipmap-hdpi/backgroundsettings.jpg")}
           style={{ width: "100%", height: "100%" }}
         >
           <View style={styles.container}>
@@ -242,6 +244,7 @@ export default class App extends React.Component {
                 style={styles.winningsbutton}
               />
             </TouchableOpacity>
+            <Text style={styles.text}>{this.state.currentValue}</Text>
           </View>
           <View style={styles.bottomsettings}>
             <TouchableOpacity
@@ -255,8 +258,10 @@ export default class App extends React.Component {
               />
             </TouchableOpacity>
             <DisplayModal
-              
               display={this.state.display}
+              displayoff={this.triggerModalBack}
+              soundsOff={this.soundsOff}
+              soundsOn={this.soundsBack}
             />
           </View>
         </ImageBackground>
@@ -299,8 +304,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 120 / 6,
     borderColor: "lightblue",
-    borderWidth: 3,
-    backgroundColor: "#ff00ff"
+    borderWidth: 3
   },
   spinningbuttoncontainer: {
     width: 75,
@@ -335,5 +339,13 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68
   },
-  modalmuteimage: {}
+  text: {
+    fontSize: 28,
+    position: "absolute",
+    marginTop: 20,
+    left: 65,
+    textShadowColor: "#F9FC00",
+    textShadowOffset: { width: 1.5, height: 1 },
+    textShadowRadius: 8
+  }
 });
